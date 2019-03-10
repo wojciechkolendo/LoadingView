@@ -1,0 +1,15 @@
+<resources>
+    <declare-styleable name="LoadingView">
+        <attr name="loading_progress" format="float" />
+        <attr name="loading_maxProgress" format="float" />
+        <attr name="loading_animDuration" format="integer" />
+        <attr name="loading_animSwoopDuration" format="integer" />
+        <attr name="loading_animSyncDuration" format="integer" />
+        <attr name="loading_color" format="color"/>
+        <attr name="loading_thickness" format="dimension"/>
+        <attr name="loading_indeterminate" format="boolean" />
+        <attr name="loading_animAutostart" format="boolean" />
+        <attr name="loading_animSteps" format="integer" />
+        <attr name="loading_startAngle" format="float" />
+    </declare-styleable>
+</resources>

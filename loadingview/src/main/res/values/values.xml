@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<color name="loadingview_default_color">#2196F3</color>
+	<dimen name="loadingview_default_thickness">4dp</dimen>
+	<integer name="loadingview_default_progress">0</integer>
+	<integer name="loadingview_default_max_progress">100</integer>
+	<bool name="loadingview_default_is_indeterminate">true</bool>
+	<bool name="loadingview_default_anim_autostart">true</bool>
+	<integer name="loadingview_default_anim_duration">4000</integer>
+	<integer name="loadingview_default_anim_swoop_duration">5000</integer>
+	<integer name="loadingview_default_anim_sync_duration">500</integer>
+	<integer name="loadingview_default_anim_steps">3</integer>
+	<integer name="loadingview_default_start_angle">-90</integer>
+</resources>
