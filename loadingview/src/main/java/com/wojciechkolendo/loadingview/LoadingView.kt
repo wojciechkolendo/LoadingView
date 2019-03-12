@@ -1,5 +1,7 @@
 package com.wojciechkolendo.loadingview
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.content.Context
@@ -9,6 +11,8 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import java.util.*
 
 /**
@@ -18,26 +22,11 @@ class LoadingView : View {
 
 	private val INDETERMINANT_MIN_SWEEP = 15f
 
-	private lateinit var paint: Paint
-	private lateinit var bounds: RectF
+	private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+	private val bounds = RectF()
 	private var size = 0
 
-	var isIndeterminate: Boolean = false
-		set(value) {
-			val old = field
-			val reset = field != value
-			field = value
-			if (reset) {
-				resetAnimation()
-			}
-			if (old != value) {
-				for (listener in listeners) {
-					listener.onModeChanged(field)
-				}
-			}
-		}
-
-
+	private var isIndeterminate: Boolean = false
 	private var autostartAnimation: Boolean = false
 	private var currentProgress: Float = 0f
 	private var maxProgress: Float = 0f
@@ -50,7 +39,7 @@ class LoadingView : View {
 	private var animSyncDuration: Int = 0
 	private var animSteps: Int = 0
 
-	private lateinit var listeners: MutableList<LoadingViewListener>
+	private val listeners = ArrayList<LoadingViewListener>()
 
 	// Animation related stuff
 	private var startAngle: Float = 0f
@@ -60,26 +49,24 @@ class LoadingView : View {
 	private var indeterminateAnimator: AnimatorSet? = null
 	private var initialStartAngle: Float = 0f
 
-	constructor(context: Context, thickness: Int) : super(context) {
-		this.thickness = thickness
+	constructor(context: Context) : super(context) {
+		init(null, 0)
 	}
 
-	constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
+	constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
+		init(attrs, 0)
+	}
 
-	constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle)
+	constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle) {
+		init(attrs, defStyle)
+	}
 
-	private fun init(attrs: AttributeSet, defStyle: Int) {
-		listeners = ArrayList<LoadingViewListener>()
-
+	private fun init(attrs: AttributeSet?, defStyle: Int) {
 		initAttributes(attrs, defStyle)
-
-		paint = Paint(Paint.ANTI_ALIAS_FLAG)
 		updatePaint()
-
-		bounds = RectF()
 	}
 
-	private fun initAttributes(attrs: AttributeSet, defStyle: Int) {
+	private fun initAttributes(attrs: AttributeSet?, defStyle: Int) {
 		val array = context.obtainStyledAttributes(attrs, R.styleable.LoadingView, defStyle, 0)
 
 		currentProgress = array.getFloat(
@@ -126,7 +113,9 @@ class LoadingView : View {
 			}
 			// Use default color
 			else -> {
-				color = resources.getColor(R.color.loadingview_default_color, null)
+				val colors = context.obtainStyledAttributes(intArrayOf(android.R.attr.colorAccent))
+				color = colors.getColor(0, resources.getColor(R.color.loadingview_default_color, null))
+				colors.recycle()
 			}
 		}
 
@@ -177,7 +166,7 @@ class LoadingView : View {
 
 	private fun updatePaint() {
 		paint.apply {
-			this.color = color
+			color = this@LoadingView.color
 			style = Paint.Style.STROKE
 			strokeWidth = thickness.toFloat()
 			strokeCap = Paint.Cap.BUTT
@@ -194,26 +183,237 @@ class LoadingView : View {
 		}
 	}
 
+	/**
+	 * Sets whether this CircularProgressView is indeterminate or not.
+	 * It will reset the animation if the mode has changed.
+	 * @param isIndeterminate True if indeterminate.
+	 */
+	fun setIndeterminate(value: Boolean) {
+		val old = this.isIndeterminate
+		val reset = this.isIndeterminate != value
+		this.isIndeterminate = value
+		if (reset) {
+			resetAnimation()
+		}
+		if (old != value) {
+			for (listener in listeners) {
+				listener.onModeChanged(this.isIndeterminate)
+			}
+		}
+	}
 
+	/**
+	 * Sets the thickness of the progress bar arc.
+	 * @param thickness the thickness of the progress bar arc
+	 */
+	fun setThickness(thickness: Int) {
+		this.thickness = thickness
+		updatePaint()
+		updateBounds()
+		invalidate()
+	}
 
+	/**
+	 * Sets the color of the progress bar.
+	 * @param color the color of the progress bar
+	 */
+	fun setColor(color: Int) {
+		this.color = color
+		updatePaint()
+		invalidate()
+	}
+
+	/**
+	 * Sets the progress value considered to be 100% of the progress bar.
+	 * @param maxProgress the maximum progress
+	 */
+	fun setMaxProgress(maxProgress: Float) {
+		this.maxProgress = maxProgress
+		invalidate()
+	}
+
+	/**
+	 * Sets the progress of the progress bar.
+	 *
+	 * @param currentProgress the new progress.
+	 */
+	fun setProgress(currentProgress: Float) {
+		this.currentProgress = currentProgress
+		// Reset the determinate animation to approach the new currentProgress
+		if (!isIndeterminate) {
+			progressAnimator?.cancel()
+			progressAnimator = ValueAnimator.ofFloat(actualProgress, currentProgress)
+			progressAnimator?.let {
+				it.duration = animSyncDuration.toLong()
+				it.interpolator = LinearInterpolator()
+				it.addUpdateListener { animation ->
+					actualProgress = animation.animatedValue as Float
+					invalidate()
+				}
+				it.addListener(object : AnimatorListenerAdapter() {
+					override fun onAnimationEnd(animation: Animator) {
+						for (listener in listeners) {
+							listener.onProgressUpdateEnd(currentProgress)
+						}
+					}
+				})
+				it.start()
+			}
+		}
+		invalidate()
+		for (listener in listeners) {
+			listener.onProgressUpdate(currentProgress)
+		}
+	}
+
+	/**
+	 * Register a [LoadingViewListener] with this View
+	 * @param listener The listener to register
+	 */
 	fun addListener(listener: LoadingViewListener) {
 		listeners.add(listener)
 	}
 
+	/**
+	 * Unregister a [LoadingViewListener] with this View
+	 * @param listener The listener to unregister
+	 */
 	fun removeListener(listener: LoadingViewListener) {
 		listeners.remove(listener)
 	}
 
+	/**
+	 * Starts the progress bar animation.
+	 * *This is an alias of [resetAnimation] so it does the same thing*
+	 */
 	private fun startAnimation() {
 		resetAnimation()
 	}
 
+	/**
+	 * Resets the animation.
+	 */
 	private fun resetAnimation() {
+		// Cancel all the old animators
+		startAngleRotate?.cancel()
+		progressAnimator?.cancel()
+		indeterminateAnimator?.cancel()
 
+		if (!isIndeterminate) {
+			// The cool 360 swoop animation at the start of the animation
+			startAngle = initialStartAngle
+			startAngleRotate = ValueAnimator.ofFloat(startAngle, startAngle + 360)
+			startAngleRotate?.let {
+				it.duration = animSwoopDuration.toLong()
+				it.interpolator = DecelerateInterpolator(2f)
+				it.addUpdateListener { animation ->
+					startAngle = animation.animatedValue as Float
+					invalidate()
+				}
+				it.start()
+			}
+
+			// The linear animation shown when progress is updated
+			actualProgress = 0f
+			progressAnimator = ValueAnimator.ofFloat(actualProgress, currentProgress)
+			progressAnimator?.let {
+				it.duration = animSyncDuration.toLong()
+				it.interpolator = LinearInterpolator()
+				it.addUpdateListener { animation ->
+					actualProgress = animation.animatedValue as Float
+					invalidate()
+				}
+				it.start()
+			}
+		} else {
+			indeterminateSweep = INDETERMINANT_MIN_SWEEP
+			// Build the whole AnimatorSet
+			indeterminateAnimator = AnimatorSet()
+			var prevSet: AnimatorSet? = null
+			var nextSet: AnimatorSet
+			for (step in 0 until animSteps) {
+				nextSet = createIndeterminateAnimator(step.toFloat())
+				val builder = indeterminateAnimator!!.play(nextSet)
+				if (prevSet != null)
+					builder.after(prevSet)
+				prevSet = nextSet
+			}
+
+			// Listen to end of animation so we can infinitely loop
+			indeterminateAnimator!!.addListener(object : AnimatorListenerAdapter() {
+
+				var wasCancelled = false
+
+				override fun onAnimationCancel(animation: Animator) {
+					wasCancelled = true
+				}
+
+				override fun onAnimationEnd(animation: Animator) {
+					if (!wasCancelled)
+						resetAnimation()
+				}
+			})
+			indeterminateAnimator!!.start()
+			for (listener in listeners) {
+				listener.onAnimationReset()
+			}
+		}// Indeterminate animation
 	}
 
+	/**
+	 * Stops the animation
+	 */
 	private fun stopAnimation() {
+		startAngleRotate?.cancel()
+		progressAnimator?.cancel()
+		indeterminateAnimator?.cancel()
+		startAngleRotate = null
+		progressAnimator = null
+		indeterminateAnimator = null
+	}
 
+	/**
+	 * Creates the animators for one step of the animation
+	 */
+	private fun createIndeterminateAnimator(step: Float): AnimatorSet {
+		val maxSweep = 360f * (animSteps - 1) / animSteps + INDETERMINANT_MIN_SWEEP
+		val start = -90f + step * (maxSweep - INDETERMINANT_MIN_SWEEP)
+
+		// Extending the front of the arc
+		val frontEndExtend = ValueAnimator.ofFloat(INDETERMINANT_MIN_SWEEP, maxSweep)
+		frontEndExtend.duration = (animDuration / animSteps / 2).toLong()
+		frontEndExtend.interpolator = DecelerateInterpolator(1f)
+		frontEndExtend.addUpdateListener { animation ->
+			indeterminateSweep = animation.animatedValue as Float
+			invalidate()
+		}
+
+		// Overall rotation
+		val rotateAnimator1 = ValueAnimator.ofFloat(step * 720f / animSteps, (step + .5f) * 720f / animSteps)
+		rotateAnimator1.duration = (animDuration / animSteps / 2).toLong()
+		rotateAnimator1.interpolator = LinearInterpolator()
+		rotateAnimator1.addUpdateListener { animation -> indeterminateRotateOffset = animation.animatedValue as Float }
+
+		// Retracting the back end of the arc
+		val backEndRetract = ValueAnimator.ofFloat(start, start + maxSweep - INDETERMINANT_MIN_SWEEP)
+		backEndRetract.duration = (animDuration / animSteps / 2).toLong()
+		backEndRetract.interpolator = DecelerateInterpolator(1f)
+		backEndRetract.addUpdateListener { animation ->
+			startAngle = animation.animatedValue as Float
+			indeterminateSweep = maxSweep - startAngle + start
+			invalidate()
+		}
+
+		// More overall rotation
+		val rotateAnimator2 = ValueAnimator.ofFloat((step + .5f) * 720f / animSteps, (step + 1) * 720f / animSteps)
+		rotateAnimator2.duration = (animDuration / animSteps / 2).toLong()
+		rotateAnimator2.interpolator = LinearInterpolator()
+		rotateAnimator2.addUpdateListener { animation -> indeterminateRotateOffset = animation.animatedValue as Float }
+
+		return AnimatorSet().apply {
+			play(frontEndExtend).with(rotateAnimator1)
+			play(backEndRetract).with(rotateAnimator2).after(rotateAnimator1)
+		}
 	}
 
 	override fun onAttachedToWindow() {

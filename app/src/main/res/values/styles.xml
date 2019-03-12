@@ -1,11 +1,23 @@
 <resources>
 
-    <!-- Base application theme. -->
-    <style name="AppTheme" parent="Base.Theme.MaterialComponents.Light">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
+	<!-- Base application theme. -->
+	<style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+		<!-- Customize your theme here. -->
+		<item name="colorPrimary">@color/colorPrimary</item>
+		<item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+		<item name="colorSecondary">@color/colorAccent</item>
+		<item name="colorOnSecondary">@color/white</item>
+		<item name="android:colorBackground">@color/white</item>
+
+		<item name="android:windowLightStatusBar">true</item>
+		<item name="android:statusBarColor">@color/white</item>
+		<item name="android:windowLightNavigationBar">true</item>
+		<item name="android:navigationBarColor">@color/white</item>
+	</style>
+
+	<style name="AppTheme.ProgressDialog" parent="AppTheme">
+		<item name="android:windowBackground">@color/transparent</item>
+		<item name="colorPrimary">@color/white</item>
+	</style>
 
 </resources>
