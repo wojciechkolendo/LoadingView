@@ -14,6 +14,8 @@ dependencies {
 
 ## Using ProgressBar
 
+![](assets/device-2019-03-13-110925.gif)
+
 XML layout file:
 
 ```xml
@@ -42,6 +44,9 @@ Attribute Name         |Description                                             
 
 
 ## Using LoadingDialog
+
+![](assets/device-2019-03-13-111005.gif)
+
 ```java
 val loadingDialog = LoadingDialog(this, R.style.AppTheme_ProgressDialog)
 ```
