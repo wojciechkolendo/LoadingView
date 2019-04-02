@@ -8,11 +8,13 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.os.Build
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
+import androidx.core.content.ContextCompat
 import java.util.*
 
 /**
@@ -96,14 +98,16 @@ class LoadingView : View {
 		startAngle = initialStartAngle
 
 		val secondaryColor = resources.getIdentifier("colorSecondary", "attr", context.packageName)
+		val defaultColor: Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			resources.getColor(R.color.loadingview_default_color, null)
+		} else {
+			ContextCompat.getColor(context, R.color.loadingview_default_color)
+		}
 
 		when {
 			// If color explicitly provided
 			array.hasValue(R.styleable.LoadingView_loading_color) -> {
-				color = array.getColor(
-					R.styleable.LoadingView_loading_color,
-					resources.getColor(R.color.loadingview_default_color, null)
-				)
+				color = array.getColor(R.styleable.LoadingView_loading_color, defaultColor)
 			}
 			// If using Theme.MaterialComponents
 			secondaryColor != 0 -> {
@@ -114,7 +118,7 @@ class LoadingView : View {
 			// Use default color
 			else -> {
 				val colors = context.obtainStyledAttributes(intArrayOf(android.R.attr.colorAccent))
-				color = colors.getColor(0, resources.getColor(R.color.loadingview_default_color, null))
+				color = colors.getColor(0, defaultColor)
 				colors.recycle()
 			}
 		}
