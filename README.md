@@ -8,7 +8,7 @@ Android material theme (`Theme.MaterialComponents`) loading indicator with custo
 
 ```Gradle
 dependencies {
-    implementation 'com.wojciechkolendo:loadingview:1.0.1'
+    implementation 'com.wojciechkolendo:loadingview:1.0.3'
 }
 ```
 
