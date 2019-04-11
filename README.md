@@ -2,7 +2,7 @@
 
 Android material theme (`Theme.MaterialComponents`) loading indicator with customizable attributes
 
-[ ![Download](https://api.bintray.com/packages/wojciechkolendo/maven/LoadingView/images/download.svg?version=1.0.1) ](https://bintray.com/wojciechkolendo/maven/LoadingView/1.0.1/link)
+[ ![Download](https://api.bintray.com/packages/wojciechkolendo/maven/LoadingView/images/download.svg) ](https://bintray.com/wojciechkolendo/maven/LoadingView/_latestVersion)
 
 ## Gradle Dependency (jCenter)
 
